@@ -1,5 +1,6 @@
 """FastAPI application entrypoint."""
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -12,12 +13,21 @@ from app.core.config import settings
 from app.core.database import engine
 
 
+logger = logging.getLogger(__name__)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # pg_trgm powers fuzzy matching in search — must exist before the first query.
-    with engine.connect() as conn:
-        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
-        conn.commit()
+    # pg_trgm powers fuzzy matching in search. It is created once by the migration, so
+    # in production this is skipped — a serverless cold start should not pay for a
+    # round-trip, and a permissions failure here must never take the whole API down.
+    if not settings.is_production:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+                conn.commit()
+        except Exception:
+            logger.warning("Could not ensure pg_trgm extension; search may be degraded")
     yield
     engine.dispose()
 
