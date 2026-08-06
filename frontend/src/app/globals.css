@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/*
+  Design tokens. Solar-industry palette: deep navy for authority, a solar blue for
+  action, amber as the energy accent. Every colour has a dark-mode counterpart.
+*/
+@theme {
+  --color-brand-50: #eef6ff;
+  --color-brand-100: #d9ecff;
+  --color-brand-200: #bcdeff;
+  --color-brand-300: #8ec9ff;
+  --color-brand-400: #59aaff;
+  --color-brand-500: #3388fb;
+  --color-brand-600: #1d68f0;
+  --color-brand-700: #1852dc;
+  --color-brand-800: #1a44b2;
+  --color-brand-900: #1c3d8c;
+  --color-brand-950: #152755;
+
+  --color-navy-800: #10203f;
+  --color-navy-900: #0a1730;
+  --color-navy-950: #060e1f;
+
+  --color-solar-400: #ffc73d;
+  --color-solar-500: #f5a623;
+  --color-solar-600: #d8860b;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgb(16 32 63 / 0.04), 0 8px 24px rgb(16 32 63 / 0.06);
+  --shadow-card-hover: 0 2px 4px rgb(16 32 63 / 0.06), 0 16px 40px rgb(16 32 63 / 0.12);
+}
+
+:root {
+  --surface: #ffffff;
+  --surface-muted: #f6f8fb;
+  --surface-raised: #ffffff;
+  --text: #10203f;
+  --text-muted: #55637d;
+  --border: #e3e8f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #060e1f;
+    --surface-muted: #0a1730;
+    --surface-raised: #10203f;
+    --text: #eaf0fa;
+    --text-muted: #9aa8c2;
+    --border: #1d2c4d;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Urdu and Arabic need more line height to stay legible. */
+[dir="rtl"] body {
+  line-height: 1.9;
+}
+
+/* Wide content (spec tables) scrolls inside itself — the page never scrolls sideways. */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Rich text coming from the CMS. */
+.prose-cms :where(h2) {
+  font-size: 1.5rem;
+  font-weight: 650;
+  margin: 2rem 0 0.75rem;
+}
+.prose-cms :where(h3) {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.5rem;
+}
+.prose-cms :where(p) {
+  margin: 0 0 1rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+}
+.prose-cms :where(ul, ol) {
+  margin: 0 0 1rem 1.25rem;
+  list-style: disc;
+  color: var(--text-muted);
+}
+.prose-cms :where(a) {
+  color: var(--color-brand-600);
+  text-decoration: underline;
+}
+.prose-cms :where(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

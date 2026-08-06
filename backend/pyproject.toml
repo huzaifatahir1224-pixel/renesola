@@ -1,0 +1,61 @@
+[project]
+name = "renesola-backend"
+version = "0.1.0"
+description = "FastAPI backend for a solar PV manufacturer site — CMS API, lead capture, and Groq-powered AI search."
+requires-python = ">=3.12"
+
+dependencies = [
+    # Web framework
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-multipart>=0.0.12",
+
+    # Database
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14.0",
+    "psycopg[binary]>=3.2.3",
+
+    # Settings & validation
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "email-validator>=2.2.0",
+
+    # Auth — bcrypt directly; passlib is unmaintained and breaks on bcrypt >= 4.1
+    "bcrypt>=4.2.0",
+    "pyjwt>=2.10.0",
+
+    # Supabase storage + HTTP
+    "supabase>=2.10.0",
+    "httpx>=0.28.0",
+
+    # AI / chatbot
+    "groq>=0.13.0",
+
+    # Utilities
+    "python-slugify>=8.0.4",
+    "pillow>=11.0.0",
+    "tenacity>=9.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+    "beautifulsoup4>=4.12.3",   # used by the content scraper
+    "lxml>=5.3.0",
+]
+
+[tool.uv]
+# This is an application, not a distributable library — don't try to build it.
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
