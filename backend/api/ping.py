@@ -40,6 +40,53 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this exac
         except Exception as exc:  # noqa: BLE001
             app_import = type(exc).__name__ + ": " + str(exc)[:200]
 
+        # Run the same work a real endpoint does, and report what breaks.
+        checks = {}
+
+        try:
+            from app.core.config import settings
+
+            checks["db_driver"] = settings.DATABASE_URL.split("://")[0]
+            checks["db_host_port"] = settings.DATABASE_URL.split("@")[-1][:60]
+            checks["environment"] = settings.ENVIRONMENT
+        except Exception as exc:  # noqa: BLE001
+            checks["settings"] = type(exc).__name__ + ": " + str(exc)[:200]
+
+        try:
+            from sqlalchemy import func, select
+
+            from app.core.database import SessionLocal
+            from app.models.catalog import Product
+
+            with SessionLocal() as db:
+                checks["orm_count"] = db.scalar(select(func.count()).select_from(Product))
+        except Exception as exc:  # noqa: BLE001
+            checks["orm_count"] = type(exc).__name__ + ": " + str(exc)[:300]
+
+        try:
+            from sqlalchemy import select
+
+            from app.core.database import SessionLocal
+            from app.models.catalog import Product
+            from app.services.serializers import product_card
+
+            with SessionLocal() as db:
+                row = db.scalar(select(Product).limit(1))
+                checks["serialize"] = (
+                    product_card(row, "en")["model_number"] if row else "no rows"
+                )
+        except Exception as exc:  # noqa: BLE001
+            checks["serialize"] = type(exc).__name__ + ": " + str(exc)[:300]
+
+        try:
+            from app.core.database import SessionLocal
+            from app.services.retrieval import search
+
+            with SessionLocal() as db:
+                checks["search"] = len(search(db, "bifacial", locale="en", limit=2))
+        except Exception as exc:  # noqa: BLE001
+            checks["search"] = type(exc).__name__ + ": " + str(exc)[:300]
+
         # Can the third-party dependencies even be imported?
         deps = {}
         for name in ("fastapi", "sqlalchemy", "psycopg", "pydantic", "groq", "httpx"):
@@ -68,6 +115,7 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this exac
             "app_contents": app_contents,
             "api_contents": api_contents,
             "app_main_import": app_import,
+            "runtime_checks": checks,
             "dependencies": deps,
             "env_set": [n for n in expected if os.environ.get(n)],
             "env_missing": [n for n in expected if not os.environ.get(n)],
