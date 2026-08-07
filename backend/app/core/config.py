@@ -41,6 +41,24 @@ class Settings(BaseSettings):
     # ── Groq ──
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_BASE_URL: str = "https://api.groq.com"
+
+    @field_validator("GROQ_BASE_URL", mode="before")
+    @classmethod
+    def normalise_groq_base_url(cls, v: str) -> str:
+        """Keep the host only — the SDK appends `/openai/v1` itself.
+
+        The Groq client also reads GROQ_BASE_URL from the environment, so a value that
+        already carries the path produces `/openai/v1/openai/v1/chat/completions` and a
+        404 that looks nothing like a configuration problem.
+        """
+        if not isinstance(v, str) or not v.strip():
+            return "https://api.groq.com"
+        v = v.strip().rstrip("/")
+        for suffix in ("/openai/v1", "/openai"):
+            if v.endswith(suffix):
+                v = v[: -len(suffix)]
+        return v.rstrip("/") or "https://api.groq.com"
 
     # ── Auth ──
     SECRET_KEY: str

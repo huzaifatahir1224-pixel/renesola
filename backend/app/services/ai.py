@@ -32,7 +32,9 @@ def _client() -> Groq | None:
     if not settings.GROQ_API_KEY:
         logger.warning("GROQ_API_KEY is not set — AI answers are disabled")
         return None
-    return Groq(api_key=settings.GROQ_API_KEY)
+    # base_url is passed explicitly so a stray GROQ_BASE_URL in the environment cannot
+    # double up the path the SDK already appends.
+    return Groq(api_key=settings.GROQ_API_KEY, base_url=settings.GROQ_BASE_URL)
 
 
 def build_context(sources: list[dict[str, Any]], max_chars: int = 6000) -> str:
