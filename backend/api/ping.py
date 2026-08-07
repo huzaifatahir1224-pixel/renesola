@@ -115,6 +115,28 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this exac
         except Exception as exc:  # noqa: BLE001
             checks["search"] = type(exc).__name__ + ": " + str(exc)[:300]
 
+        # The AI service swallows its own errors so a failure degrades to a plain
+        # result list; call Groq directly here so the real reason is visible.
+        try:
+            from groq import Groq
+
+            from app.core.config import settings
+
+            key = settings.GROQ_API_KEY
+            checks["groq_key_len"] = len(key)
+            checks["groq_model"] = settings.GROQ_MODEL
+            if not key:
+                checks["groq_call"] = "no key set"
+            else:
+                completion = Groq(api_key=key).chat.completions.create(
+                    model=settings.GROQ_MODEL,
+                    messages=[{"role": "user", "content": "reply with the single word: ok"}],
+                    max_tokens=5,
+                )
+                checks["groq_call"] = (completion.choices[0].message.content or "")[:40]
+        except Exception as exc:  # noqa: BLE001
+            checks["groq_call"] = type(exc).__name__ + ": " + str(exc)[:300]
+
         # Can the third-party dependencies even be imported?
         deps = {}
         for name in ("fastapi", "sqlalchemy", "psycopg", "pydantic", "groq", "httpx"):
