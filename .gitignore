@@ -38,3 +38,6 @@ desktop.ini
 
 # ── Scraper output (large; regenerate with the scraper) ──
 scraped/
+
+# Stray curl/debug output
+*.tmp.html
