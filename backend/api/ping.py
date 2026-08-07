@@ -135,6 +135,13 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this exac
 
         payload = {
             "ping": "pong",
+            # Vercel injects these, so the response identifies exactly which build and
+            # which environment's variables are in effect.
+            "deployment": {
+                "commit": os.environ.get("VERCEL_GIT_COMMIT_SHA", "?")[:7],
+                "target": os.environ.get("VERCEL_ENV", "?"),
+                "region": os.environ.get("VERCEL_REGION", "?"),
+            },
             "python_version": sys.version,
             "cwd": os.getcwd(),
             "root": root,
