@@ -1,11 +1,8 @@
 """Vercel serverless entrypoint.
 
-Vercel's builder looks for a module-level ASGI callable named `app`. Keep this file
-canonical and unconditional — when `app` was assigned inside a try/except the builder
-did not recognise it and never created the function at all.
-
-Diagnostics live in api/ping.py, which needs no imports and stays reachable even when
-this module cannot load.
+Vercel's builder looks for a module-level ASGI callable named `app`. Keep this
+unconditional — while `app` was assigned inside a try/except the builder could not see
+it and never created the function, so every route returned a bare 404.
 """
 
 import os
