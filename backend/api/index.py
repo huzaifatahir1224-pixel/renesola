@@ -3,67 +3,70 @@
 Vercel's Python runtime looks for a module-level ASGI callable named `app` inside
 `api/`. Everything else lives in the `app` package one level up.
 
-If that import fails the platform only surfaces FUNCTION_INVOCATION_FAILED, which says
-nothing useful. So a failed import is caught here and served as a diagnostic response
-instead — the traceback and enough environment facts to identify the cause. Only the
-*names* of environment variables are reported, never their values.
+When the entrypoint raises on import, Vercel surfaces only FUNCTION_INVOCATION_FAILED,
+which identifies nothing. So the import is caught here and served as a diagnostic
+response instead.
+
+This file is deliberately written in the oldest syntax that still works: no PEP 604
+unions, no walrus, no f-string nesting. If the runtime turns out to be an older Python
+than expected, *this file must still parse* — otherwise it cannot report that fact.
+Only the names of environment variables are reported, never their values.
 """
 
 import json
 import os
 import sys
 import traceback
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
-_import_error: str | None = None
+_IMPORT_ERROR = None
 
 try:
     from app.main import app  # noqa: F401
 except Exception:
-    _import_error = traceback.format_exc()
+    _IMPORT_ERROR = traceback.format_exc()
 
-    def _diagnostics() -> dict:
-        expected = [
-            "DATABASE_URL",
-            "SECRET_KEY",
-            "SUPABASE_URL",
-            "SUPABASE_SERVICE_ROLE_KEY",
-            "SUPABASE_STORAGE_BUCKET",
-            "GROQ_API_KEY",
-            "ENVIRONMENT",
-            "BACKEND_CORS_ORIGINS",
-        ]
+    EXPECTED_ENV = [
+        "DATABASE_URL",
+        "SECRET_KEY",
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_STORAGE_BUCKET",
+        "GROQ_API_KEY",
+        "ENVIRONMENT",
+        "BACKEND_CORS_ORIGINS",
+    ]
+
+    def _listdir(path):
         try:
-            root_entries = sorted(p.name for p in ROOT.iterdir())
+            return sorted(os.listdir(path))
         except OSError as exc:
-            root_entries = [f"<unreadable: {exc}>"]
+            return ["<unreadable: " + str(exc) + ">"]
 
-        app_dir = ROOT / "app"
-        try:
-            app_entries = sorted(p.name for p in app_dir.iterdir()) if app_dir.is_dir() else []
-        except OSError as exc:
-            app_entries = [f"<unreadable: {exc}>"]
-
+    def _diagnostics():
+        app_dir = os.path.join(ROOT, "app")
+        app_present = os.path.isdir(app_dir)
         return {
             "error": "backend failed to start",
             "python_version": sys.version,
-            "root": str(ROOT),
-            "root_contents": root_entries,
-            "app_package_present": app_dir.is_dir(),
-            "app_contents": app_entries,
-            "env_vars_set": [name for name in expected if os.environ.get(name)],
-            "env_vars_missing": [name for name in expected if not os.environ.get(name)],
-            "traceback": _import_error.splitlines()[-40:],
+            "root": ROOT,
+            "root_contents": _listdir(ROOT),
+            "app_package_present": app_present,
+            "app_contents": _listdir(app_dir) if app_present else [],
+            "sys_path_head": sys.path[:5],
+            "env_vars_set": [n for n in EXPECTED_ENV if os.environ.get(n)],
+            "env_vars_missing": [n for n in EXPECTED_ENV if not os.environ.get(n)],
+            "traceback": _IMPORT_ERROR.splitlines()[-40:],
         }
 
-    async def app(scope, receive, send):  # type: ignore[no-redef]
+    async def app(scope, receive, send):  # noqa: F811
         """Minimal ASGI app that reports why the real one could not load."""
-        if scope["type"] != "http":
+        if scope.get("type") != "http":
             return
-        body = json.dumps(_diagnostics(), indent=2).encode()
+        body = json.dumps(_diagnostics(), indent=2).encode("utf-8")
         await send(
             {
                 "type": "http.response.start",
@@ -75,6 +78,3 @@ except Exception:
             }
         )
         await send({"type": "http.response.body", "body": body})
-
-
-__all__ = ["app"]
