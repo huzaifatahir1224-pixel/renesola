@@ -52,6 +52,34 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this exac
         except Exception as exc:  # noqa: BLE001
             checks["settings"] = type(exc).__name__ + ": " + str(exc)[:200]
 
+        # Which database is this actually talking to, and what is visible in it?
+        try:
+            from sqlalchemy import text
+
+            from app.core.database import engine
+
+            with engine.connect() as conn:
+                checks["current_database"] = conn.execute(text("select current_database()")).scalar()
+                checks["current_user"] = conn.execute(text("select current_user")).scalar()
+                checks["search_path"] = conn.execute(text("show search_path")).scalar()
+                checks["public_tables"] = conn.execute(
+                    text(
+                        "select count(*) from information_schema.tables "
+                        "where table_schema = 'public'"
+                    )
+                ).scalar()
+                checks["table_sample"] = [
+                    r[0]
+                    for r in conn.execute(
+                        text(
+                            "select table_name from information_schema.tables "
+                            "where table_schema = 'public' order by table_name limit 8"
+                        )
+                    )
+                ]
+        except Exception as exc:  # noqa: BLE001
+            checks["introspection"] = type(exc).__name__ + ": " + str(exc)[:300]
+
         try:
             from sqlalchemy import func, select
 
@@ -61,7 +89,7 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this exac
             with SessionLocal() as db:
                 checks["orm_count"] = db.scalar(select(func.count()).select_from(Product))
         except Exception as exc:  # noqa: BLE001
-            checks["orm_count"] = type(exc).__name__ + ": " + str(exc)[:300]
+            checks["orm_count"] = type(exc).__name__ + ": " + str(exc)[:200]
 
         try:
             from sqlalchemy import select
