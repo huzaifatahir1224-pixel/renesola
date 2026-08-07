@@ -26,6 +26,20 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this exac
         except OSError as exc:
             app_contents = ["<unreadable: " + str(exc) + ">"]
 
+        api_dir = os.path.join(root, "api")
+        try:
+            api_contents = sorted(os.listdir(api_dir)) if os.path.isdir(api_dir) else []
+        except OSError as exc:
+            api_contents = ["<unreadable: " + str(exc) + ">"]
+
+        # Can the real application be imported from here?
+        try:
+            from app.main import app as _real_app  # noqa: F401
+
+            app_import = "ok"
+        except Exception as exc:  # noqa: BLE001
+            app_import = type(exc).__name__ + ": " + str(exc)[:200]
+
         # Can the third-party dependencies even be imported?
         deps = {}
         for name in ("fastapi", "sqlalchemy", "psycopg", "pydantic", "groq", "httpx"):
@@ -52,6 +66,8 @@ class handler(BaseHTTPRequestHandler):  # noqa: N801 - Vercel requires this exac
             "root_contents": root_contents,
             "app_package_present": os.path.isdir(app_dir),
             "app_contents": app_contents,
+            "api_contents": api_contents,
+            "app_main_import": app_import,
             "dependencies": deps,
             "env_set": [n for n in expected if os.environ.get(n)],
             "env_missing": [n for n in expected if not os.environ.get(n)],
