@@ -13,6 +13,10 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        # Values pasted into a hosting dashboard routinely pick up a trailing newline.
+        # An unnoticed one turns a database name into "postgres\n" or an API key into a
+        # rejected credential, so strip every string setting.
+        str_strip_whitespace=True,
     )
 
     # ── App ──
@@ -76,6 +80,7 @@ class Settings(BaseSettings):
         """
         if not isinstance(v, str) or not v:
             return v
+        v = v.strip()
         for prefix in ("postgresql+asyncpg://", "postgresql+psycopg2://", "postgresql://", "postgres://"):
             if v.startswith(prefix):
                 return "postgresql+psycopg://" + v[len(prefix) :]
