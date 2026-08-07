@@ -1,26 +1,3 @@
-# Runtime dependencies for the Vercel serverless function.
-#
-# Deliberately narrower than pyproject.toml, which also covers local development:
-#   uvicorn  - Vercel invokes the ASGI app directly, there is no server process
-#   alembic  - migrations run from a developer machine or CI, never in a function
-#   supabase - the SDK is unused; storage.py talks to the REST API with httpx
-#
-# Pins are taken from the versions this project is actually tested against.
-
-fastapi==0.141.1
-pydantic==2.13.4
-pydantic-settings==2.14.2
-email-validator==2.3.0
-python-multipart==0.0.32
-
-sqlalchemy==2.0.51
-psycopg==3.3.4
-psycopg-binary==3.3.4
-
-bcrypt==5.0.0
-pyjwt==2.13.0
-
-httpx==0.28.1
-groq==1.6.0
-python-slugify==8.0.4
-pillow==12.3.0
+# Bisect step: intentionally empty.
+# api/ping.py uses only the standard library, so nothing is needed to serve it.
+# Restored from requirements.full.txt once the runtime is confirmed working.
