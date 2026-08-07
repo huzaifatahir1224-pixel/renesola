@@ -1,0 +1,7 @@
+# Vercel must see a plain requirements.txt project.
+# With pyproject.toml + uv.lock present, the builder takes the uv path and installs
+# into a .venv the function runtime never looks in.
+pyproject.toml
+uv.lock
+alembic
+alembic.ini
