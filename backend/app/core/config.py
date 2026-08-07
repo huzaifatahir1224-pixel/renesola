@@ -64,6 +64,23 @@ class Settings(BaseSettings):
             return [item.strip() for item in v.split(",") if item.strip()]
         return v
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def normalise_database_driver(cls, v: str) -> str:
+        """Pin the URL to the driver we actually ship.
+
+        Supabase hands out `postgresql://…`, plenty of guides suggest
+        `postgresql+asyncpg://…`, and SQLAlchemy would then try to import a DBAPI that
+        is not installed — failing at import with a bare ModuleNotFoundError. This app
+        is synchronous and ships psycopg, so any Postgres URL is coerced to it.
+        """
+        if not isinstance(v, str) or not v:
+            return v
+        for prefix in ("postgresql+asyncpg://", "postgresql+psycopg2://", "postgresql://", "postgres://"):
+            if v.startswith(prefix):
+                return "postgresql+psycopg://" + v[len(prefix) :]
+        return v
+
     @property
     def is_production(self) -> bool:
         return self.ENVIRONMENT.lower() in {"production", "prod"}
