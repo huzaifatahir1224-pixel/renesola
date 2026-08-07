@@ -110,6 +110,22 @@ redeploy.
 The bucket must be **public** — the site loads product images directly from it. Uploads
 require the `sb_secret_…` key; the publishable key cannot write.
 
+### Things that cost real time on the first deploy
+
+Each of these produced a symptom that pointed somewhere else entirely.
+
+| Symptom | Cause |
+|---|---|
+| Every path returns `FUNCTION_INVOCATION_FAILED`, builds succeed | The project's Framework Preset was left on Next.js from when it was created against `frontend/`, so `api/*.py` was never built as a Python function. `vercel.json` sets `"framework": null` to override the dashboard. |
+| `/api/v1/*` 404 while another function works | The ASGI `app` was assigned inside a `try/except`; the builder only recognises an unconditional module-level assignment. |
+| `ModuleNotFoundError: No module named 'asyncpg'` | `DATABASE_URL` carried a driver the app does not ship. Settings now coerce any Postgres URL to `+psycopg`. |
+| `database "postgres\n" does not exist` | A trailing newline from pasting into the dashboard. Settings now strip whitespace from every string. |
+| Connection succeeds but `relation "products" does not exist` | `DATABASE_URL` pointed at a different Supabase project. Check the pooler host and project ref. |
+| AI answers silently fall back to a plain result list | A `GROQ_BASE_URL` in the environment already contained `/openai/v1`, which the SDK appends again. The base URL is normalised and passed explicitly. |
+
+Environment variable edits only take effect on a **new** deployment — saving them and
+reloading the old one changes nothing.
+
 ---
 
 ## What is in the admin panel
