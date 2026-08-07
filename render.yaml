@@ -1,0 +1,76 @@
+# Render Blueprint for the FastAPI backend.
+#
+# Render runs a normal long-lived process rather than a serverless function, which suits
+# this API: connections are pooled properly, cold starts do not matter, and the build and
+# runtime logs are readable.
+#
+# To deploy: Render dashboard -> New -> Blueprint -> connect this repository.
+# Secrets are marked `sync: false` so they are entered in the dashboard, never committed.
+
+services:
+  - type: web
+    name: renesola-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+
+      # ── Supabase ──
+      # Use the SESSION pooler (port 5432) here. Render keeps one long-lived process,
+      # so the transaction pooler's per-statement restrictions buy nothing.
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: renesola
+
+      # ── Groq ──
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+
+      # ── Auth ──
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+
+      # ── App ──
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: PROJECT_NAME
+        value: ReneSola Pakistan
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: DEFAULT_LOCALE
+        value: en
+      - key: SUPPORTED_LOCALES
+        value: en,ur,ar,zh
+
+      # Set to the deployed frontend origin once it is live, then redeploy.
+      - key: BACKEND_CORS_ORIGINS
+        sync: false
+
+      # ── Email (optional) ──
+      - key: EMAIL_FROM
+        value: noreply@renesola.pk
+      - key: SALES_EMAIL
+        sync: false
+      - key: SERVICE_EMAIL
+        sync: false

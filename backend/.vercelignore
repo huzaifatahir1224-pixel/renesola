@@ -1,6 +1,0 @@
-pyproject.toml
-uv.lock
-alembic
-alembic.ini
-app
-api/_index_disabled.py.txt
